@@ -91,10 +91,13 @@
 #define ERL_PASS_THROUGH      'p'
 
 /* new ones for tracing, from Kenneth */
-#define ERL_SEND_TT      12
-#define ERL_EXIT_TT      13
-#define ERL_REG_SEND_TT  16
-#define ERL_EXIT2_TT     18
+#define ERL_SEND_TT        12
+#define ERL_EXIT_TT        13
+#define ERL_REG_SEND_TT    16
+#define ERL_EXIT2_TT       18
+#define ERL_MONITOR_P      19
+#define ERL_DEMONITOR_P    20
+#define ERL_MONITOR_P_EXIT 21
 
 
 /* -------------------------------------------------------------------- */
