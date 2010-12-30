@@ -280,10 +280,14 @@ server_loop(N0, Eval_0, Bs00, RT, Ds00, History0, Results0) ->
                             [N]),
 	    server_loop(N0, Eval0, Bs0, RT, Ds0, History0, Results0);
 	{eof,_EndLine} ->
-            fwrite_severity(fatal, <<"Terminating erlang (~w)">>, [node()]),
+            fwrite_severity(fatal, <<"EOF on stdin (did you mean to use "
+				    "-noinput?). Terminating erlang (~w)">>,
+			    [node()]),
 	    halt();
 	eof ->
-            fwrite_severity(fatal, <<"Terminating erlang (~w)">>, [node()]),
+            fwrite_severity(fatal, <<"EOF on stdin (did you mean to use "
+				    "-noinput?). Terminating erlang (~w)">>,
+			    [node()]),
 	    halt()
     end.
 
