@@ -5,17 +5,19 @@
 %%% @author Yiannis Tsiouris <yiannis.tsiouris@gmail.com>
 %%%    [http://www.softlab.ntua.gr/~gtsiour/]
 
+%----Modified for crossing compilation for ARM enviroment-----------------------
+
 %%------------------------------------------------------------------------------
 %%
 %%                        ELF Header File
 %%
 %%------------------------------------------------------------------------------
 
--ifdef(BIT32).
+%-ifdef(BIT32). -> BIT32 is not set in ARM. ARM is 32 bit so we use elf32_format.hrl
 -include("elf32_format.hrl"). % ELF32-specific definitions.
--else.
--include("elf64_format.hrl"). % ELF64-specific definitions.
--endif.
+%-else.
+%-include("elf64_format.hrl"). % ELF64-specific definitions.
+%-endif.
 
 %%------------------------------------------------------------------------------
 %% ELF Data Types (in bytes)
