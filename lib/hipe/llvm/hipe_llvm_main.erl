@@ -44,14 +44,18 @@ rtl_to_native(MFA, RTL, Roots, Options) ->
   AccRefs  = fix_relocations(TextRelocs, RelocsDict, MFA),
   %% Get stack descriptors
   SDescs   = get_sdescs(ObjBin),
+
   %% FixedSDescs are the stack descriptors after correcting calls that have
   %% arguments in the stack
   FixedSDescs = fix_stack_descriptors(RelocsDict, AccRefs, SDescs, ExposedClosures),
   Refs = AccRefs++FixedSDescs,
+
   %% Get binary code from object file
   BinCode = elf_format:extract_text(ObjBin),
+
   %% Remove temp files (if needed)
-  remove_temp_folder(Dir, Options),
+  %----Modified for crossing compilation for ARM enviroment------------------- 
+  % remove_temp_folder(Dir, Options),
   %% Return the code together with information that will be used in the
   %% hipe_llvm_merge module to produce the final binary that will be loaded
   %% by the hipe unified loader.
@@ -90,7 +94,9 @@ invoke_llvm_tools(Dir, Fun_Name, Options) ->
   llvm_as(Dir, Fun_Name),
   llvm_opt(Dir, Fun_Name, Options),
   llvm_llc(Dir, Fun_Name, Options),
-  compile(Dir, Fun_Name, "gcc").
+  %----Modified for crossing compilation for ARM enviroment-------------------
+  New_Fun_Name = fix_return_address(Dir, Fun_Name),
+  compile(Dir, New_Fun_Name, "arm-elf-as").
 
 %% @doc Invoke llvm-as tool to convert LLVM Asesmbly to bitcode.
 llvm_as(Dir, Fun_Name) ->
@@ -127,19 +133,62 @@ llvm_llc(Dir, Fun_Name, Options) ->
                true -> ["-enable-block-placement" | LlcFlagsTemp];
                false -> LlcFlagsTemp
              end,
-  Command  = "llc " ++ fix_opts(LlcFlags) ++ " " ++ Source,
-  %% io:format("LLC: ~s~n", [Command]),
+  %----Modified for crossing compilation for ARM enviroment-------------------
+  Command  = "llc " ++ fix_opts(LlcFlags) ++ " -march=arm " ++ Source,,
+  io:format("--------------LLC: ~s~n", [Command]),
   case os:cmd(Command) of
     "" -> ok;
     Error -> exit({?MODULE, opt, Error})
   end.
+
+%------------------ We need to push and store return address------------------------
+% str lr, [r11, #-4] when enter a function
+% ldr lr, [r11, #-4] when exit a function
+
+fix_return_address(Dir, Fun_Name) ->
+  New_Fun_Name = Fun_Name ++ "_1",
+  Source_Read   = Dir ++ Fun_Name ++ ".s",
+  Source_Write  = Dir ++ New_Fun_Name ++ ".s",	
+  
+  {ok, Device_Read} = file:open(Source_Read, [read]),
+  {ok, Device_Write} = file:open(Source_Write, [append]),
+
+  get_all_lines(Device_Read, Device_Write),
+	
+  New_Fun_Name.  	
+
+get_all_lines(Device_Read, Device_Write) ->
+ case io:get_line(Device_Read, "") of
+        eof  -> file:close(Device_Read), 
+		file:close(Device_Write);
+        Line ->
+		Strip_Line = string:strip(Line),
+		io:format("|~w", [Strip_Line]), 		
+		io:fwrite(Strip_Line),	
+		io:format("~w|", ["\tmov\tpc, lr\n"]),		
+		case Strip_Line of
+			"@ BB#0:\n" -> file:write(Device_Write, Line),
+				     file:write(Device_Write, "\tstr\tr14, [r10, #-4]!\n");
+			"\tmov\tpc, lr\n" -> file:write(Device_Write, "\tldr\tr14, [r10], #4\n"),
+				     	file:write(Device_Write, Line);
+			"\tmoveq\tpc, lr\n" -> file:write(Device_Write, "\tldreq\tr14, [r10], #4\n"),
+				     	file:write(Device_Write, Line);
+			"\tldr\tr7, [r11, #120]\n" -> file:write(Device_Write, "\tldr\tr7, [r11, #128]\n");
+			"\tstr\tr7, [r11, #120]\n" -> file:write(Device_Write, "\tstr\tr7, [r11, #128]\n"); 
+			_ -> 	file:write(Device_Write, Line)
+		end,
+
+		get_all_lines(Device_Read, Device_Write)
+ end.
+
 
 %% @doc Invoke the compiler tool ("gcc", "llvmc", etc.) to generate an object
 %%      file from native assembly.
 compile(Dir, Fun_Name, Compiler) ->
   Source  = Dir ++ Fun_Name ++ ".s",
   Dest    = Dir ++ Fun_Name ++ ".o",
-  Command = Compiler ++ " -c " ++ Source ++ " -o " ++ Dest,
+  Command = Compiler ++ " " ++ Source ++ " -o " ++ Dest,
+  io:format("--------------Command: ~s~n", [Command]),
   case os:cmd(Command) of
     "" -> ok;
     Error -> exit({?MODULE, llvmc, Error})
@@ -150,6 +199,7 @@ find_stack_alignment() ->
   case get(hipe_target_arch) of
     x86 -> "8";
     amd64 -> "8";
+    arm -> "8";
     _ -> exit({?MODULE, find_stack_alignment, "Unimplemented architecture"})
   end.
 

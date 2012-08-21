@@ -925,8 +925,10 @@ assemble(CompiledCode, Closures, Exports, Options) ->
 
 set_architecture(Options) ->
   put(hipe_host_arch, erlang:system_info(hipe_architecture)),
-  put(hipe_target_arch,
-      proplists:get_value(target, Options, get(hipe_host_arch))),
+  %put(hipe_target_arch,
+  %    proplists:get_value(target, Options, get(hipe_host_arch))),
+  %----Modified for crossing compilation for ARM enviroment----------------------
+  put(hipe_target_arch, arm),
   ok.
 
 %% This sets up some globally accessed stuff that are needed by the

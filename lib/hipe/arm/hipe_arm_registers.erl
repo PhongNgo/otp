@@ -29,7 +29,8 @@
 	 temp2/0,	% not parameter, must not be allocatable (frame)
 	 temp3/0,	% not parameter, may be allocatable
 	 heap_pointer/0,
-	 stack_pointer/0,
+	 %stack_pointer/0,
+	 sp/0,
 	 proc_pointer/0,
 	 lr/0,
 	 pc/0,
@@ -43,7 +44,8 @@
 	 is_arg/1,	% for linear scan
 	 call_clobbered/0,
 	 tailcall_clobbered/0,
-	 live_at_return/0
+	 live_at_return/0,
+	 alignment/0
 	 ]).
 
 -include("../rtl/hipe_literals.hrl").
@@ -82,7 +84,8 @@
 -define(STACK_POINTER, ?R10).
 -define(PROC_POINTER, ?R11).
 
-reg_name_gpr(R) -> [$r | integer_to_list(R)].
+%reg_name_gpr(R) -> [$r | integer_to_list(R)].
+reg_name_gpr(R) -> "%r" ++ integer_to_list(R).
 
 %%% Must handle both GPR and FPR ranges.
 first_virtual() -> ?LAST_PRECOLOURED + 1.
@@ -109,7 +112,7 @@ temp3() -> ?TEMP3.	% for base2 in storeix :-(
 
 heap_pointer() -> ?HEAP_POINTER.
 
-stack_pointer() -> ?STACK_POINTER.
+sp() -> ?STACK_POINTER.
 
 proc_pointer() -> ?PROC_POINTER.
 
@@ -205,3 +208,5 @@ live_at_return() ->
    {?STACK_POINTER,untagged},
    {?PROC_POINTER,untagged}
   ].
+
+alignment() -> 4.

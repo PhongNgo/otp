@@ -1142,12 +1142,13 @@ trans_reg(Arg, Position) ->
       {hipe_rtl_arch:reg_name(Index), []}
   end.
 
+
+%----Modified for crossing compilation for ARM enviroment------------------- 
 map_precoloured_reg(Index) ->
   case hipe_rtl_arch:reg_name(Index) of
-    "%r15" -> "%hp_reg_var";
-    "%rbp" -> "%p_reg_var";
-    "%esi" -> "%hp_reg_var";
-    "%ebp" -> "%p_reg_var";
+    "%r9" -> "%hp_reg_var";
+    "%r11" -> "%p_reg_var";
+    "%r10" -> "%s_reg_var";
     "%fcalls" -> {"%p_reg_var",
                   ?ARCH_REGISTERS:proc_offset(?ARCH_REGISTERS:fcalls())};
     "%hplim" -> {"%p_reg_var",
@@ -1156,6 +1157,7 @@ map_precoloured_reg(Index) ->
       exit({?MODULE, map_precoloured_reg, {"Register not mapped yet",
             Index}})
   end.
+%------------------------------------------------
 
 %% @doc Load precoloured dst register
 fix_reg_dst(Register) ->
@@ -1331,6 +1333,8 @@ fixed_registers() ->
       ["hp", "p"];
     amd64 ->
       ["hp", "p"];
+    %----Modified for crossing compilation for ARM enviroment-------------------
+    arm -> ["hp", "p", "s"];
     Other ->
       exit({?MODULE, map_registers, {"Unknown Architecture", Other}})
   end.
